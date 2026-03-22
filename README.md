@@ -1,6 +1,6 @@
 # Keep Weapons for Project Brutality
 
-`Keep Weapons for Project Brutality` is a small ZScript addon for `Project Brutality 0.4.1` that changes how weapon upgrades behave.
+`Keep Weapons for Project Brutality` is a small ZScript addon for the [`PB_Staging`](https://github.com/pa1nki113r/Project_Brutality/tree/PB_Staging) branch of `Project Brutality` that changes how weapon upgrades behave.
 
 By default, Project Brutality replaces certain base weapons when you pick up their upgraded versions. This addon prevents that removal, so you can keep both the original weapon and its upgraded counterpart in your inventory at the same time.
 
@@ -64,9 +64,9 @@ Because the CVar is declared as a `user` CVar, the setting is stored per player.
 
 ## Compatibility Notes
 
-- This addon is meant for `Project Brutality 0.4.1`.
+- This addon tracks the [`PB_Staging`](https://github.com/pa1nki113r/Project_Brutality/tree/PB_Staging) branch of Project Brutality.
 - It intentionally overrides upstream PB weapon base scripts.
-- If PB changes `BaseWeapon.zc` or `BaseWeapon_Functions.zsc` in a future update, this addon may need to be rebased against the new upstream files.
+- If PB_Staging updates `BaseWeapon.zc` or `BaseWeapon_Functions.zsc`, this addon may need to be rebased against the new upstream files.
 
 ## Included Files
 
