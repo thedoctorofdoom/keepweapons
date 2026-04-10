@@ -23,7 +23,7 @@ pbx_keep_all_weapons_addon/
 
 Three code locations implement the keep-all-weapons behavior:
 
-1. **`BaseWeapon.zc` — `HandlePickup()` override (line ~118)**
+1. **`BaseWeapon.zc` — `HandlePickup()` override (line ~88)**
    Reads `pbx_keep_all_weapons` from the owning player's CVars. When `true`:
    - Skips the `While(owner && self.amount > 0){ owner.DropInventory(self,1); }` loop that normally removes the base weapon on upgrade pickup.
    - Skips the `else if` branch that would consume a duplicate base-weapon pickup when the player already owns the upgrade.
@@ -31,7 +31,7 @@ Three code locations implement the keep-all-weapons behavior:
 2. **`BaseWeapon_Functions.zsc` — `PB_TakeIfUpgrade()` (line ~386)**
    Early-returns when `pbx_keep_all_weapons` is `true`, preventing individual weapon scripts from stripping old weapons during upgrade state sequences.
 
-3. **`BaseWeapon_Functions.zsc` — `PB_SelectIfUpgrade()` (line ~406)**
+3. **`BaseWeapon_Functions.zsc` — `PB_SelectIfUpgrade()` (line ~399)**
    Early-returns when `pbx_keep_all_weapons` is `true`, preventing forced weapon-switch to the upgrade.
 
 All three sites use the same CVar-check pattern:
@@ -67,7 +67,7 @@ Ammo (engine)
 |------------------|-------------------------------------------|-----------------------------------------------|
 | Classes          | `PB_` prefix, PascalCase                  | `PB_WeaponBase`, `PB_DualWeapon`              |
 | Functions        | `PB_` prefix, PascalCase                  | `PB_TakeIfUpgrade`, `PB_CheckReload`          |
-| Properties       | PascalCase (declared via `property`)      | `UpgradedWeapon`, `DualWieldToken`            |
+| Properties       | PascalCase (declared via `property`)      | `UpgradedWeapon`, `WheelInfo`                 |
 | Member variables | camelCase                                 | `barrelHeat`, `chamberEmpty`, `akimboMode`    |
 | CVars (addon)    | `pbx_` prefix, snake_case                 | `pbx_keep_all_weapons`                        |
 | CVars (PB)       | `pb_` prefix, snake_case                  | `pb_toggle_aim_hold`                          |

@@ -385,42 +385,25 @@ extend class PB_WeaponBase
 	
 	Action void PB_TakeIfUpgrade(string oldweap = "")
 	{
-		//console.printf("cvar val: \ca"..Cvar.GetCVar("pb_keepweapons", invoker.owner.player).GetBool().."\c-, weapon is: \cd"..invoker.getclassname().."\c-, oldweapon is: \ca"..oldweap.."\c-");
 		if(invoker && invoker.owner && invoker.owner.player && Cvar.GetCVar("pbx_keep_all_weapons", invoker.owner.player).GetBool())
 			return;
 		
 		let pbw = PB_WeaponBase(findinventory(oldweap));
 		if(pbw)
 		{
-			if(pbw.DualWieldToken)
-			{
-				A_takeinventory(pbw.DualWieldToken,1);	//this function takes weapons that may be in akimbo mode, so you also need to take this token
-				pbw.A_SetAkimbo(false);
-			}
-			
-			//console.printf("taking: \cg"..oldweap.."\c-");
+			pbw.A_SetAkimbo(false);
 			A_setinventory(oldweap,0);
 		}
 	}
 	
 	Action void PB_SelectIfUpgrade(string upgrade = "")
 	{
-		//console.printf("cvar val: \ca"..Cvar.GetCVar("pb_keepweapons", invoker.owner.player).GetBool().."\c-, weapon is: \cd"..invoker.getclassname().."\c-, oldweapon is: \ca"..upgrade.."\c-");
 		if(invoker && invoker.owner && invoker.owner.player && Cvar.GetCVar("pbx_keep_all_weapons", invoker.owner.player).GetBool())
 			return;
 		
 		if(!CountInv(upgrade)) return;
-		//console.printf("switching to: \cg"..upgrade.."\c-");
 		A_SetAkimbo(false);
-		if(invoker.DualWieldToken)
-			A_takeinventory(invoker.DualWieldToken,1);
-			
 		A_selectweapon(upgrade);
-	}
-	
-	
-	action bool PB_ChainsawHealthRestore(){
-		return invoker.chainsawMode;
 	}
 	
 	action void PB_SetChainsawHealthRestore(bool type){
@@ -3352,29 +3335,6 @@ action StateLabel PB_ExecutionCrackodemon() {
 	{
 		invoker.akimboMode = type;
 	}
-		
-	
-	action string A_GetCurrentFireMode()
-	{
-		return invoker.fireMode;
-	}
-	
-	action void A_SetCurrentFireMode(string type)
-	{
-		invoker.fireMode = type;
-	}
-		
-	
-	action string A_GetCurrentRifleMode()
-	{
-		return invoker.upgradedRifleMode;
-	}
-	
-	action void A_SetCurrentRifleMode(string type)
-	{
-		invoker.upgradedRifleMode = type;
-	}
-	
 	
 	action string A_GetCurrentGrenadeType()
 	{
@@ -3982,25 +3942,21 @@ action int getReadyFlags(int weapflags, bool noReload)
 	}
 	action state PB_RespectIfNeeded()
 	{
-		//A_Log("PB_RespectIfNeeded");
 		Actor own = invoker.owner;
-		bool shouldHelmet = !Cvar.GetCvar("PB_NoHelmetAnimation",player).GetBool() && !FindInventory("IntroductionSequence"); //ACS_NamedExecuteWithResult("ToggleHelmetAnimation",0,0,0) == 0
-		bool shouldRespect = invoker.respectInventoryItem != "" && !FindInventory(invoker.respectInventoryItem);
+		bool shouldHelmet = !Cvar.GetCvar("PB_NoHelmetAnimation",player).GetBool() && !own.FindInventory("IntroductionSequence");
+		bool shouldRespect = !invoker.respected || level.time == 0;
 		if (shouldHelmet)
 		{
 			own.GiveInventory("CantDoAction",1);
-			//Console.printf("Setting State: HelmetAnimation");
 			return invoker.resolveState("HelmetAnimation");
-		}			
+		}
 		else if (shouldRespect)
 		{
-			//Console.printf("Setting State: WeaponRespect");
-			own.GiveInventory(invoker.respectInventoryItem,1);
+			invoker.respected = true;
 			return invoker.resolveState("WeaponRespect");
 		}
 		else
 		{
-			//Console.printf("Setting State: SelectAnimation");
 			return invoker.A_Jump(256,"SelectAnimation");
 		}
 	}
