@@ -28,10 +28,10 @@ Three code locations implement the keep-all-weapons behavior:
    - Skips the `While(owner && self.amount > 0){ owner.DropInventory(self,1); }` loop that normally removes the base weapon on upgrade pickup.
    - Skips the `else if` branch that would consume a duplicate base-weapon pickup when the player already owns the upgrade.
 
-2. **`BaseWeapon_Functions.zsc` — `PB_TakeIfUpgrade()` (line ~386)**
+2. **`BaseWeapon_Functions.zsc` — `PB_TakeIfUpgrade()` (line ~483)**
    Early-returns when `pbx_keep_all_weapons` is `true`, preventing individual weapon scripts from stripping old weapons during upgrade state sequences.
 
-3. **`BaseWeapon_Functions.zsc` — `PB_SelectIfUpgrade()` (line ~399)**
+3. **`BaseWeapon_Functions.zsc` — `PB_SelectIfUpgrade()` (line ~499)**
    Early-returns when `pbx_keep_all_weapons` is `true`, preventing forced weapon-switch to the upgrade.
 
 All three sites use the same CVar-check pattern:
@@ -90,9 +90,11 @@ These files are **full overrides** of PB upstream files from the `PB_Staging` br
 
 If PB updates `BaseWeapon.zc`, this addon must be rebased:
 
-1. Download the upstream file via raw HTTP (e.g., `Invoke-WebRequest` or `curl`) — do **not** rely on web-rendered content, as angle-bracket type parameters like `class<Ammo>` get silently stripped as HTML tags.
+1. Download the upstream file via raw HTTP (e.g., `Invoke-WebRequest` or `curl`) — do **not** rely on web-rendered content, as angle-bracket type parameters like `class<Ammo>` get silently stripped as HTML tags. The correct raw path is `https://raw.githubusercontent.com/pa1nki113r/Project_Brutality/PB_Staging/zscript/Weapons/BaseWeapon.zc` (capital `Weapons`).
 2. Re-apply the `HandlePickup()` CVar guard.
-3. Preserve all other upstream changes verbatim.
+3. Preserve all other upstream changes verbatim — match upstream byte-for-byte except for the guard. The simplest reliable method is to overwrite with upstream and re-apply only the three guard lines (the `keepAllWeapons` bool, the `if(!keepAllWeapons){...}` wrap around the `DropInventory` loop, and the `!keepAllWeapons &&` prefix on the duplicate-pickup `else if`).
+
+**Overlay-layer constants**: As of the May 2026 PB_Staging update, `BaseWeapon.zc` references named overlay constants (`PSP_LEDGEGRAB`, `PSP_QUICKMELEE`, `PSP_MELEEEQHANDLER`, etc.) that are defined by the global `enum PB_OverlayLayers` at the top of `BaseWeapon_Functions.zsc`. Both files must be rebased together. Note that upstream's own `BaseWeapon.zc` is internally inconsistent (e.g., it uses `PSP_FIRSPERSONLEGS` in only one spot and hardcoded `-1000` elsewhere) — do not "tidy" these; mirror upstream exactly to avoid divergence noise on future rebases.
 
 #### BaseWeapon_Functions.zsc (three-way merge: PB upstream + Monster Pack + KeepWeapons)
 
@@ -105,10 +107,12 @@ This file is a **three-way merge** of:
 
 **Rebasing procedure** when PB or Monster Pack updates:
 
-1. Start from Monster Pack's version of `BaseWeapon_Functions.zsc` (which already includes PB upstream + execution handlers).
+1. Start from Monster Pack's version of `BaseWeapon_Functions.zsc` (which already includes PB upstream + execution handlers). If only PB updated (no new Monster Pack release), start from the PB raw file at `https://raw.githubusercontent.com/pa1nki113r/Project_Brutality/PB_Staging/zscript/Weapons/BaseWeapon_Functions.zsc` (capital `Weapons`) and re-inject the Monster Pack content (see below).
 2. Download via raw HTTP — do **not** rely on web-rendered content, as angle-bracket type parameters like `class<Ammo>` get silently stripped as HTML tags.
 3. Re-apply the two CVar guards in `PB_TakeIfUpgrade()` and `PB_SelectIfUpgrade()`.
-4. Preserve all Monster Pack execution handler code and all other upstream changes verbatim.
+4. Preserve all Monster Pack execution handler code and all other upstream changes verbatim. The Monster Pack content lives in **two interleaved locations**, not one appended block: (a) the ~27 `PB_Execution*()` handler functions inserted between `PB_ExecuteCacodemon()` and `PB_ExecuteShotguny()`, and (b) the extra `case` entries inside `PB_ExecutionHandlerString()` (between the base `PB_Cacodemon` case and `default:`). When rebasing onto a fresh PB pull, take the new upstream wholesale (it may have added top-of-file code such as the `PB_OverlayLayers` enum and the `PB_ReadyFire` / `PB_SetZoom` / `PB_ClearDualWield` / `PB_SetupDualWield` action functions) and inject only these two Monster Pack blocks plus the two CVar guards.
+
+> **May 2026 rebase note**: PB_Staging refactored this file, adding `enum PB_OverlayLayers` and the `PB_ReadyFire`/`PB_SetZoom`/`PB_ClearDualWield`/`PB_SetupDualWield` functions near the top of `extend class PB_WeaponBase`. A stale KeepWeapons override that lacked these caused 37 compile errors (`Unknown identifier 'PSP_LEFTGUN'`, `PB_SetZoom: action function not found`, etc.). The fix was a full rebase onto the new upstream with the Monster Pack blocks and CVar guards re-injected.
 
 ## Development Guidelines
 
