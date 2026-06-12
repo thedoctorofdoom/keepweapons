@@ -1,22 +1,3 @@
-enum PB_VisorBlood{
-		REDBLOODVISOR,
-		GREENBLOODVISOR,
-		BLUEBLOODVISOR,
-		ERRORBLOODVISOR
-	}
-
-enum PB_OverlayLayers{
-		PSP_LEDGEGRAB					= 1000,
-		PSP_LEFTGUN		  				= 10,
-		PSP_RIGHTGUN	 				= 11,
-		PSP_MELEEEQHANDLER			 	= -777,
-		PSP_KICKHANDLER				 	= -778,
-		PSP_EQTOGGLEHANDLER			 	= -779,
-		PSP_QUICKMELEEBLOOD				= -997,
-		PSP_QUICKMELEE					= -998,
-		PSP_FIRSPERSONLEGS				= -1000
-	}
-	
 extend class PB_WeaponBase
 {
 	// Function for weapons that have both dual wield and ads, just enable the ads if its called in ready2
@@ -4337,8 +4318,10 @@ action int getReadyFlags(int weapflags, bool noReload)
 			}
 			for(int i = 0; i < rail.hitActors.Size(); i++)
 			{
-				let d = Spawn("PB_RailDamage",(rail.hitX[i],rail.hitY[i],rail.hitZ[i]) + rail.results.hitVector);
-				d.target = self; //no self damage
+				int raildmg = 757;
+				string raildmgtype = "Railgun";
+				[raildmg, raildmgtype] = GetLimbDamage(raildmg, raildmgtype, (rail.hitX[i], rail.hitY[i], rail.hitZ[i]), rail.hitActors[i], invoker.owner);
+				rail.hitActors[i].DamageMobj(invoker, invoker.owner, raildmg, raildmgtype, DMG_THRUSTLESS);
 			}
 			
 			for(int i = 0; i < q; i++)
