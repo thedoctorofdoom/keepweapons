@@ -510,17 +510,17 @@ extend class PB_WeaponBase
 				double healingFactor = coefficient*sqrt(200-playerHealth);
 				
 				if(verticalCut)
-					A_Saw("", "Machete/Yum", 2, "SSawPuff3", SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS, 80, 3, 0, healingFactor, 200);
+					A_Saw("", "Machete/Yum", 10, "SSawPuff3", SF_NORANDOM|SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS, 80, 3, 0, healingFactor, 200);
 				else
-					A_Saw("", "Machete/Yum", 2, "SSawPuff2", SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS, 80, 3, 0, healingFactor, 200);
+					A_Saw("", "Machete/Yum", 10, "SSawPuff2", SF_NORANDOM|SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS, 80, 3, 0, healingFactor, 200);
 			
 			}
 			else
 			{
 				if(verticalCut)
-					A_Saw("", "Machete/Yum", 2, "SSawPuff3", SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS|SF_NOUSEAMMO , 80, 3, 0);
+					A_Saw("", "Machete/Yum", 10, "SSawPuff3", SF_NORANDOM|SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS|SF_NOUSEAMMO , 80, 3, 0);
 				else
-					A_Saw("", "Machete/Yum", 2, "SSawPuff2", SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS|SF_NOUSEAMMO , 80, 3, 0);
+					A_Saw("", "Machete/Yum", 10, "SSawPuff2", SF_NORANDOM|SF_NOPULLIN|SF_NOTURN|SF_NOUSEAMMOMISS|SF_NOUSEAMMO , 80, 3, 0);
 			}
 		}
 	}
@@ -1273,7 +1273,7 @@ extend class PB_WeaponBase
     //[Pop] This is a wrapper for A_SetRoll, to allow for CVar control of 
 	//player camera tilting. SPF_INTERPOLATE will always be on, and pointer
 	//should always be the player anyways, so dont need to worry about those.
-	action void PB_SetRoll(int rollangle)
+	action void PB_SetRoll(double rollangle)
 	{
 		//Do CVar Check
 		if(pb_camerarolltoggle)
@@ -2559,7 +2559,6 @@ action StateLabel PB_ExecutionCrackodemon() {
 	
 ////////////////////////////////The End//////////////////////////////////////////////////////////////////	
 
-
 	action StateLabel PB_ExecuteShotguny() {
 		//A_GiveInventory("ExecutionToken", 1, AAPTR_PLAYER_GETTARGET); // Todo: Move this to a higher function once more fatalities are done
 		StateLabel result;
@@ -2812,7 +2811,6 @@ action StateLabel PB_ExecutionCrackodemon() {
 			case 'OverLord':
 				return PB_ExecutionOverLord();	
 ///////////////////////////The End/////////////////////////////////////////////////////////////////////////
-
 			default:
 // 				A_Print("Execution Failed");
 				return PB_ExecuteGeneric();
@@ -2954,7 +2952,7 @@ action StateLabel PB_ExecutionCrackodemon() {
 		int targetMaxHealth = monster.spawnHealth();
 		int targetCurrentHealth = monster.health;
 		
-		if(targetCurrentHealth < 1) {
+		if(targetCurrentHealth < 1 || monster.bDORMANT) {
 			return false;
 		} // In case the check desynced, found this during another gameplay
 		
@@ -3321,6 +3319,70 @@ action StateLabel PB_ExecutionCrackodemon() {
 			pdaweapContainer.CollectedWeapons.Push(self.GetClassName());
 			EventHandler.SendNetworkEvent("Foundweapon:"..self.GetClassName());
 		}*/
+		if(self is "PB_Flamethrower") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 8, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push("$PB_FLAMETHROWER_TIP");
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 8);
+			}
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 13, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push("$PB_BARREL_TIP_1");
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 13);
+			}
+		}
+		else if(self is "PB_Carbine") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 10, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push("$PB_CARBINE_TIP");
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 10);
+			}
+		}
+		else if(self is "PB_MG42") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 11, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push("$PB_MG42_TIP");
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 11);
+			}
+		}
+		else if(self is "PB_M2Plasma") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 12, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push("$PB_BARREL_TIP_3");
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 12);
+			}
+		}
+		else if(self is "PB_CryoRifle") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 14, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push("$PB_BARREL_TIP_2");
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 14);
+			}
+		}
+		else if(self is "PB_BFG9000") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 15, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push(string.format(StringTable.Localize("$PB_BFG_TIP"), PB_HelpNotificationsHandler.PB_FormatKeybinds("+reload")));
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 15);
+			}
+		}
+		else if(self is "PB_Railgun") {
+			if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 16, CVar.GetCvar("pb_helpflags", Other.Player))) {
+				Array<String> pbTipsBuf;
+				pbTipsBuf.Push(string.format(StringTable.Localize("$PB_RAILGUN_TIP"), PB_HelpNotificationsHandler.PB_FormatKeybinds("+pb_specialwheel")));
+				PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 16);
+			}
+		}
+		else if(self is "PB_Unmaker") {
+            if(!PB_HelpNotificationsHandler.CheckTipEvent(1 << 4, CVar.GetCvar("pb_helpflags", players[consoleplayer])))
+            {
+                Array<String> pbTipsBuf;
+                pbTipsBuf.Push("$PB_UNMAKER_TIP_1");
+				pbTipsBuf.Push(string.format(StringTable.Localize("$PB_UNMAKER_TIP_2"), PB_HelpNotificationsHandler.PB_FormatKeybinds("+pb_specialwheel")));
+                pbTipsBuf.Push("$PB_UNMAKER_TIP_3");
+                PB_HelpNotificationsHandler.PB_SendTipArray(pbTipsBuf, "pb_helpflags", 1 << 4);
+            }
+		}
 	}
 	
 	//Weapon token take away in one function
@@ -3371,7 +3433,6 @@ action StateLabel PB_ExecutionCrackodemon() {
 			A_SetInventory("LostSoulSelected",0);
 			A_SetInventory("CantWeaponSpecial",0);
 			A_SetInventory("HasIncendiaryWeapon", 0);
-			A_SetInventory("HasExplosiveWeapon",0);
 			A_SetInventory("HasPlasmaWeapon",0);
 			A_SetInventory("HasCutingWeapon",0);
 			A_SetInventory("HasFireWeapon",0);
@@ -3663,7 +3724,7 @@ action int getReadyFlags(int weapflags, bool noReload)
 		if (weapflags & WRF_ALLOWRELOAD) initialWRF_ALLOWRELOAD = true;
 		weapFlags &= ~(WRF_ALLOWRELOAD);
 		if(invoker is "PB_Fists" && !grabbedbarrel){weapFlags |= WRF_ALLOWRELOAD;}
-		if(checkMG42()){weapFlags |= WRF_ALLOWRELOAD;}
+		if(pbFlags & PB_FORCERELOAD){weapFlags |= WRF_ALLOWRELOAD;}
 		bool dualWieldCheck = A_CheckAkimbo();
 		bool canLoadAmmoLeft = invoker.AmmoTypeLeft && countinv(invoker.ammotype1) > 0 && (countInv(invoker.AmmoTypeLeft) < GetAmmoCapacity(invoker.AmmoTypeLeft) || PB_GetMagUnloaded(true));
 		bool canLoadAmmo = invoker.ammotype2 && countinv(invoker.ammotype1) > 0 && (countinv(invoker.ammotype2) < GetAmmoCapacity(invoker.ammotype2) || PB_GetMagUnloaded());
@@ -3697,14 +3758,14 @@ action int getReadyFlags(int weapflags, bool noReload)
 			return ResolveState("Steady");
 		}
 		
-		if(((PressingFire() || JustPressed(BT_ATTACK)) && !A_IsFiringLeftWeapon()) || ((PressingAltfire() || JustPressed(BT_ALTATTACK)) && !A_IsFiringRightWeapon())){
+		if((PressingFire() || PressingAltfire() && CVar.GetCVar("SingleDualFire", player).GetInt() != 0) && !(A_IsFiringLeftWeapon() || A_IsFiringRightWeapon())){
 			if(CountInv("DualFireReload") >= 2){
 				A_TakeInventory("DualFireReload",2);
 				return ResolveState("Reload");
 			}
 		}
 		
-		if (CountInv("GoWeaponSpecialAbility")>=1)
+		if (CountInv("GoWeaponSpecialAbility")>=1 && !pbFlags & PB_NOWEAPONSPECIAL)
 		{
 			if (ResolveState("DualWieldBaby")) return ResolveState("DualWieldBaby");
 			else if (ResolveState("NoDualWield")) return ResolveState("NoDualWield");
@@ -3722,7 +3783,7 @@ action int getReadyFlags(int weapflags, bool noReload)
 		{
 			return ResolveState("ReadyIceBarrel");
 		}
-		if (CountInv("Unloading")>=1 && ResolveState("Unload") && ((!PB_GetMagUnloaded() || !PB_GetChamberEmpty()) || (A_CheckAkimbo() && (!PB_GetMagUnloaded(true) || !PB_GetChamberEmpty(true)))))
+		if (CountInv("Unloading")>=1 && !(pbFlags & PB_NOUNLOAD) && ResolveState("Unload") && ((!PB_GetMagUnloaded() || !PB_GetChamberEmpty()) || (A_CheckAkimbo() && (!PB_GetMagUnloaded(true) || !PB_GetChamberEmpty(true)))))
 		{
 			A_SetInventory("Unloading",0);
 			A_zoomfactor(1.0);
@@ -3962,7 +4023,7 @@ action int getReadyFlags(int weapflags, bool noReload)
 		invoker.WeaponScaleX = PB_PixelRenderingFix ? 1.2 : 1.0;
 	}
 	
-	action void A_FlashOverlay(int layer = -3, statelabel state = "MuzzleFlash")
+	action void A_FlashOverlay(int layer = FLASH_LAYER, statelabel state = "MuzzleFlash")
 	{
 		A_Overlay(layer, state);
 		A_OverlayFlags(layer, PSPF_RENDERSTYLE,true);
