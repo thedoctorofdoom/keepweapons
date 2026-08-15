@@ -43,6 +43,20 @@ if(invoker && invoker.owner && invoker.owner.player && Cvar.GetCVar("pbx_keep_al
 
 The `HandlePickup` variant reads via `owner` directly (not `invoker`) because it executes in the context of the existing inventory item, not an action function.
 
+### Addon Stack & VFS Ownership
+
+The full runtime stack loads in this order: **PB → Glory Kills → Monster Pack → KeepWeapons**. Several files under `zscript/Weapons/` are provided by more than one layer of that stack; GZDoom's VFS only compiles the last-loaded archive's copy of a given path, so the table below tracks which layer's version actually wins at runtime:
+
+| File | Provided by | Winner |
+|---|---|---|
+| `zscript/Weapons/BaseWeapon.zc` | PB, KeepWeapons | KeepWeapons |
+| `zscript/Weapons/BaseWeapon_Functions.zsc` | PB, Monster Pack, KeepWeapons | KeepWeapons |
+| `zscript/Weapons/BaseWeapon_Melee.zsc` | PB, Glory Kills | Glory Kills |
+| `zscript/Weapons/BaseWeapon_Executions.zsc` | PB, Monster Pack | Monster Pack |
+| `zscript/Weapons/BaseWeapon_Barrels.zsc` | PB only (new file, Aug 2026) | PB |
+
+**Known cross-addon staleness note**: Glory Kills' `BaseWeapon_Melee.zsc` was last synced before PB's Aug 2026 barrel rewrite (see rebase note below) and still checks the old `GrabbedBarrel`/`GrabbedFlameBarrel`/`GrabbedIceBarrel` tokens rather than the new `PB_BarrelToken` class. Those legacy token actors still exist upstream, so this won't hard-error, but barrel-holding melee detection may silently stop matching. This is a Glory Kills rebase concern, not a KeepWeapons one — but it's flagged here because Glory Kills' execution path calls `PB_ExecutionHandlerString(monster)`, which lives in the file KeepWeapons owns (`BaseWeapon_Functions.zsc`), coupling the two addons even though neither owns the other's file.
+
 ## Class Hierarchy
 
 ```
@@ -100,7 +114,7 @@ If PB updates `BaseWeapon.zc`, this addon must be rebased:
 
 This file is a **three-way merge** of:
 - **PB upstream** — the base code
-- **Monster Pack** — adds ~1,200 lines of execution handler functions (27 `PB_Execution*()` handler functions and 31 `case` entries in `PB_ExecutionHandlerString()`) for custom monster melee executions
+- **Monster Pack** — adds ~1,200 lines of execution handler functions (28 `PB_Execution*()` handler functions and 35 `case` entries in `PB_ExecutionHandlerString()`, as of the 30-Jul-2026 build) for custom monster melee executions
 - **KeepWeapons** — adds the two CVar guards in `PB_TakeIfUpgrade()` and `PB_SelectIfUpgrade()`
 
 **VFS conflict**: Both KeepWeapons and Monster Pack provide `zscript/Weapons/BaseWeapon_Functions.zsc`. GZDoom's VFS uses the last-loaded archive's version. Since KeepWeapons must load after Monster Pack, KeepWeapons' copy wins. If KeepWeapons' copy does not include Monster Pack's execution handlers, Monster Pack enemies will go invisible during melee executions (the monster dies into an invisible `TNT1` state but no correct execution puppet is spawned because `PB_ExecutionHandlerString` falls through to generic).
@@ -110,9 +124,11 @@ This file is a **three-way merge** of:
 1. Start from Monster Pack's version of `BaseWeapon_Functions.zsc` (which already includes PB upstream + execution handlers). If only PB updated (no new Monster Pack release), start from the PB raw file at `https://raw.githubusercontent.com/pa1nki113r/Project_Brutality/PB_Staging/zscript/Weapons/BaseWeapon_Functions.zsc` (capital `Weapons`) and re-inject the Monster Pack content (see below).
 2. Download via raw HTTP — do **not** rely on web-rendered content, as angle-bracket type parameters like `class<Ammo>` get silently stripped as HTML tags.
 3. Re-apply the two CVar guards in `PB_TakeIfUpgrade()` and `PB_SelectIfUpgrade()`.
-4. Preserve all Monster Pack execution handler code and all other upstream changes verbatim. The Monster Pack content lives in **two interleaved locations**, not one appended block: (a) the ~27 `PB_Execution*()` handler functions inserted between `PB_ExecuteCacodemon()` and `PB_ExecuteShotguny()`, and (b) the extra `case` entries inside `PB_ExecutionHandlerString()` (between the base `PB_Cacodemon` case and `default:`). When rebasing onto a fresh PB pull, take the new upstream wholesale (it may have added top-of-file code such as the `PB_OverlayLayers` enum and the `PB_ReadyFire` / `PB_SetZoom` / `PB_ClearDualWield` / `PB_SetupDualWield` action functions) and inject only these two Monster Pack blocks plus the two CVar guards.
+4. Preserve all Monster Pack execution handler code and all other upstream changes verbatim. The Monster Pack content lives in **two interleaved locations**, not one appended block: (a) the ~28 `PB_Execution*()` handler functions inserted between `PB_ExecuteCacodemon()` and `PB_ExecuteShotguny()`, and (b) the extra `case` entries inside `PB_ExecutionHandlerString()` (between the base `PB_Cacodemon` case and `default:`). When rebasing onto a fresh PB pull, take the new upstream wholesale (it may have added top-of-file code such as the `PB_OverlayLayers` enum and the `PB_ReadyFire` / `PB_SetZoom` / `PB_ClearDualWield` / `PB_SetupDualWield` action functions) and inject only these two Monster Pack blocks plus the two CVar guards.
 
 > **May 2026 rebase note**: PB_Staging refactored this file, adding `enum PB_OverlayLayers` and the `PB_ReadyFire`/`PB_SetZoom`/`PB_ClearDualWield`/`PB_SetupDualWield` functions near the top of `extend class PB_WeaponBase`. A stale KeepWeapons override that lacked these caused 37 compile errors (`Unknown identifier 'PSP_LEFTGUN'`, `PB_SetZoom: action function not found`, etc.). The fix was a full rebase onto the new upstream with the Monster Pack blocks and CVar guards re-injected.
+
+> **August 2026 rebase note** (PB_Staging commit `1b5fdfb`, 2026-08-14): Several breaking upstream changes landed in this rebase. (1) **Barrel system rewrite** — a new `BaseWeapon_Barrels.zsc` and `PB_BarrelToken` class (`TYPE_EXPLOSIVE`/`TYPE_BURNING`/`TYPE_FROZEN`) replaced the old `HasBarrel`/`HasFlameBarrel`/`HasIceBarrel`/`Grabbed*Barrel` inventory tokens and `ReadyFlameBarrel`/`ReadyIceBarrel` states with a single `RaiseBarrel` → `ReadyBarrel` path; `PB_WeaponBase` gained a `bool hasBarrel` member, and `HandlePickup`'s ammo transfer is now clamped to `maxamount`. (2) **`QueueSmoke` signature change** — `NashGoreStatics.QueueSmoke()` now takes an `Actor self` parameter, and its five call sites moved out of this file into `zscript/Effects/Smoke.zs`; since KeepWeapons' guards don't touch these call sites, taking upstream's version wholesale was sufficient. (3) **Dual-wield tri-state fix** — `FiringLeftWeapon`/`FiringRightWeapon` changed from `bool` to a tri-state `int`, with new `A_RefireLeft`/`A_RefireRight` action functions and rewritten `A_DoPBLeftAction`/`A_DoPBRightAction`. (4) **Deliberate deviation from upstream** — upstream's new `default:` case in `PB_ExecutionHandlerString()` dispatches to `PB_ExecuteFast()` (backed by new `Execution_Fast` states and a `PB_RotateCamera()` helper), but KeepWeapons' `default:` still calls `PB_ExecuteGeneric()` instead, because Monster Pack ships its own older `BaseWeapon_Executions.zsc` (which wins the VFS over PB's copy, per the [ownership table above](#addon-stack--vfs-ownership)) and that older file lacks the `Execution_Fast`/`Fast1`–`Fast3` states `PB_ExecuteFast()` requires — dispatching to it would error. This deviation is marked with a code comment in `BaseWeapon_Functions.zsc`. (5) Monster Pack's 30-Jul-2026 build added a 28th execution handler, `PB_ExecuteD16Cyberdemon()` / `case 'D16Cyberdemon':`, re-injected alongside the other 27. **Verification**: both files were confirmed via a live compile test using a fresh upstream PB_Staging clone, Glory Kills, and the 30-Jul-2026 Monster Pack build, in both with- and without-Monster-Pack configurations — both reached `TITLEMAP - PB_Introduction` with zero ZScript errors/warnings in the log, and an in-game `pb_smg` upgrade pickup confirmed the CVar guard still works correctly. Note: on this UZDoom 4.14.3 macOS build, the "script parsing took NNNN ms" line reports `0.00 ms` (it's a DECORATE-parsing metric, not ZScript compile time, on this platform) — treat reaching `TITLEMAP - PB_Introduction` with a clean log as the reliable success signal instead of that timing number.
 
 ## Development Guidelines
 
@@ -130,7 +146,7 @@ When adding new CVar-gated behavior:
 
 ### Testing
 
-- Load order matters: this addon must load **after** both Project Brutality and Monster Pack.
+- Load order matters: the full stack must load as **PB → Glory Kills → Monster Pack → KeepWeapons**, with this addon loading last. See [Addon Stack & VFS Ownership](#addon-stack--vfs-ownership) for why.
 - Test with `pbx_keep_all_weapons` both `true` and `false` to verify the toggle works and that `false` preserves stock PB behavior.
 - Test upgrade pickups, downgrade paths, dual-wield tokens, and ammo transfer.
 - Test melee executions on Monster Pack enemies (e.g., Behemoth, Hell Duke, Marauder) to verify execution puppets spawn correctly and enemies do not vanish.
