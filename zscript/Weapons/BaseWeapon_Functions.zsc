@@ -196,7 +196,6 @@ extend class PB_WeaponBase
 		A_StopSound(7);
 		A_StopSOund(CHAN_AUTO);
 		
-		A_SetInventory("Spin",0);
 		A_SetInventory("CantWeaponSpecial",0);		//Fixes bug with Weapon Special Key no longer working when changing SGL grenade type or RL missile mode
 		A_SetInventory("MG42Selected",0); 			//Take this token on every weapon that's not the MG42.
 		A_SetInventory("Grabbing_A_Ledge", 0);		//Fixed bug where movement is locked when vaulting after entering a level
@@ -2864,11 +2863,10 @@ action StateLabel PB_ExecutionD16Cyberdemon() {
 ///////////////////////////The End/////////////////////////////////////////////////////////////////////////
 			default:
 // 				A_Print("Execution Failed");
-				// KeepWeapons deviation: upstream dispatches unhandled monsters to PB_ExecuteFast() (Execution_Fast/Fast1-Fast3
-				// states added by upstream's newer BaseWeapon_Executions.zsc). Monster Pack loads after PB and ships its own
-				// older BaseWeapon_Executions.zsc lacking those states, so calling PB_ExecuteFast() here would resolve to a
-				// missing state at runtime. Keep dispatching unhandled monsters to PB_ExecuteGeneric() instead.
-				return PB_ExecuteGeneric();
+				// PB_ExecuteFast() returns the "Execution_Fast" StateLabel, which lives in PB's BaseWeapon_Executions.zsc.
+				// Monster Pack loads later and its copy wins the VFS without defining that label, so probe for it before
+				// dispatching and fall back to PB_ExecuteGeneric() when it is absent.
+				return (monster.FindState("Execution") || monster.FindState("Death.Execution") || !invoker.FindState("Execution_Fast")) ? PB_ExecuteGeneric() : PB_ExecuteFast();
 		}
 	}
 	
